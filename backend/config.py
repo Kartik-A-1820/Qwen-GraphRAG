@@ -27,6 +27,7 @@ class Settings:
     graph_path: Path = Path(os.getenv("RAG_GRAPH_PATH", PROJECT_ROOT / "data" / "graph_index.json"))
     graph_db_path: Path = Path(os.getenv("RAG_GRAPH_DB_PATH", PROJECT_ROOT / "data" / "kuzu_graph"))
     graph_backend: str = os.getenv("RAG_GRAPH_BACKEND", "kuzu")
+    graph_buffer_pool_mb: int = int(os.getenv("RAG_GRAPH_BUFFER_POOL_MB", "128"))
     graph_extraction_mode: str = os.getenv("RAG_GRAPH_EXTRACTION_MODE", "rules")
     graph_extractor_model: str = os.getenv("RAG_GRAPH_EXTRACTOR_MODEL", os.getenv("RAG_MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct"))
     graph_extraction_max_new_tokens: int = int(os.getenv("RAG_GRAPH_EXTRACTION_MAX_NEW_TOKENS", "512"))
@@ -42,7 +43,7 @@ class Settings:
     max_context_chars: int = int(os.getenv("RAG_MAX_CONTEXT_CHARS", "6000"))
     max_new_tokens: int = int(os.getenv("RAG_MAX_NEW_TOKENS", "512"))
     load_in_4bit: bool = _bool_env("RAG_LOAD_IN_4BIT", False)
-    device: str = os.getenv("RAG_DEVICE", "auto")
+    device: str = os.getenv("RAG_DEVICE", "cpu")
     reranker_model: str = os.getenv("RAG_RERANKER_MODEL", "")
     enable_reranker: bool = _bool_env("RAG_ENABLE_RERANKER", False)
 

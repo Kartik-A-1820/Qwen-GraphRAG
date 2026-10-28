@@ -1,37 +1,30 @@
-# --- Backend API ---
-fastapi
-uvicorn
-python-multipart
-python-dotenv
+# API and local configuration
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+python-multipart>=0.0.18,<1
+python-dotenv>=1,<2
 
-# --- Quantized LLM (Gemma-3) ---
-transformers @ git+https://github.com/huggingface/transformers@v4.49.0-Gemma-3
-torch
-bitsandbytes
-accelerate
+# Qwen text generation. Install a platform-appropriate torch build first.
+transformers>=4.46,<5
+torch>=2.5,<3
+accelerate>=1,<2
 
-# --- LangChain for RAG ---
-langchain
-langchain-core
-langchain-community
-langchain-huggingface
-sentence-transformers
-accelerate>=0.26.0
-langchain-chroma>=0.1.2
+# Retrieval integrations use the LangChain 0.3 API family.
+langchain-core>=0.3.70,<0.4
+langchain-community>=0.3.25,<0.4
+langchain-text-splitters>=0.3,<0.4
+langchain-huggingface>=0.3,<0.4
+langchain-chroma>=0.2.4,<0.3
+sentence-transformers>=3,<6
 
+# Document loaders
+pypdf>=5,<7
+docx2txt>=0.8,<1
 
-# --- File Parsing & Loaders ---
-pypdf
-python-docx
-docx2txt
+# Dashboard
+streamlit>=1.40,<2
+requests>=2.32,<3
+pandas>=2,<3
 
-# --- Frontend ---
-streamlit
-requests
-
-# --- Local evaluation/testing ---
-pytest
-httpx
-
-# --- Embedded local graph database ---
-kuzu
+# Embedded graph database; JSON fallback remains available.
+kuzu>=0.11,<0.12

@@ -1,16 +1,4 @@
-import re
-
-import torch
-
 from backend.config import Settings
-
-
-def extract_answer(conversation_text: str) -> str:
-    match = re.search(r"<start_of_turn>model\s*(.*)", conversation_text, re.DOTALL)
-    if match:
-        answer = match.group(1).strip()
-        return re.split(r"<end_of_turn>", answer)[0].strip()
-    return conversation_text.strip()
 
 
 class LocalCausalLMGenerator:
@@ -22,6 +10,16 @@ class LocalCausalLMGenerator:
     def _load(self) -> None:
         if self.model is not None and self.tokenizer is not None:
             return
+
+        import torch
+
+        if self.settings.load_in_4bit and (
+            self.settings.device == "cpu" or not torch.cuda.is_available()
+        ):
+            raise ValueError(
+                "4-bit loading requires a compatible CUDA device and bitsandbytes. "
+                "For CPU use RAG_DEVICE=cpu and RAG_LOAD_IN_4BIT=false."
+            )
 
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -52,31 +50,20 @@ class LocalCausalLMGenerator:
 
     def generate(self, system_instruction: str, user_query: str, max_new_tokens: int | None = None) -> str:
         self._load()
+        import torch
+
         messages = [
             {"role": "system", "content": system_instruction},
             {"role": "user", "content": user_query},
         ]
         if self.tokenizer.chat_template:
-            try:
-                inputs = self.tokenizer.apply_chat_template(
-                    [messages],
-                    add_generation_prompt=True,
-                    tokenize=True,
-                    return_dict=True,
-                    return_tensors="pt",
-                ).to(self.model.device)
-            except TypeError:
-                gemma_messages = [
-                    {"role": "system", "content": [{"type": "text", "text": system_instruction}]},
-                    {"role": "user", "content": [{"type": "text", "text": user_query}]},
-                ]
-                inputs = self.tokenizer.apply_chat_template(
-                    [gemma_messages],
-                    add_generation_prompt=True,
-                    tokenize=True,
-                    return_dict=True,
-                    return_tensors="pt",
-                ).to(self.model.device)
+            inputs = self.tokenizer.apply_chat_template(
+                messages,
+                add_generation_prompt=True,
+                tokenize=True,
+                return_dict=True,
+                return_tensors="pt",
+            ).to(self.model.device)
         else:
             prompt = f"System: {system_instruction}\n\nUser: {user_query}\n\nAssistant:"
             inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
@@ -89,4 +76,4 @@ class LocalCausalLMGenerator:
             )
         input_length = inputs["input_ids"].shape[-1]
         generated_tokens = outputs[:, input_length:]
-        return extract_answer(self.tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)[0]).strip()
+        return self.tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)[0].strip()

@@ -1,15 +1,25 @@
 # Contributing to Qwen-GraphRAG
 
-Start with a small reproducible issue or documentation correction. For a larger retrieval/graph change, describe the expected behavior and evaluation plan in an issue before implementation.
+Start with a small reproducible issue or documentation correction. For a larger retrieval or model change, describe the expected behavior and evaluation plan in an issue first.
 
-1. Fork or create a branch and use a separate Python 3.11 environment.
-2. Follow the manual setup in [README.md](README.md). Record dependency installation failures rather than hiding them with untracked local changes.
-3. Reproduce the behavior on a small non-sensitive document or fixture. Include expected versus actual references/ranking and relevant environment settings.
-4. Add or update tests when behavior changes, then run `python -m pytest -q tests/test_retrieval.py`.
-5. Open a focused pull request describing the problem, change, validation, and remaining limits.
+## Development workflow
 
-Retrieval changes should compare against the existing baseline on the same corpus and queries. Report quality separately from latency and memory; a successful fixture test is not a real-data benchmark. Graph extraction should record invalid JSON/fallback behavior as well as successful triples.
+1. Fork and create a branch. Use an isolated Python 3.11 or 3.12 environment.
+2. Follow the offline setup in [README.md](README.md): `python -m pip install -r requirements-test.txt`.
+3. Reproduce the behavior with a small synthetic or public, redistributable fixture.
+4. Add focused tests for changed behavior and run `python -m pytest -q`.
+5. Include the problem, implementation, validation, and remaining limits in the pull request.
 
-Do not commit model weights, indexes, private documents, credentials, or local machine paths. Prefer synthetic or explicitly licensed, redistributable fixtures. Keep optional model dependencies out of lightweight helpers where possible.
+Install `kuzu>=0.11,<0.12` to exercise native graph persistence; without it the native test skips. Fake-model generation tests check formatting and decoding contracts. Actual model, quantization, embedding, and dashboard changes need an appropriately configured integration run in addition to unit tests.
 
-There is currently no standalone LICENSE file. Do not introduce third-party code or datasets without stating their source and terms; discuss reuse/licensing questions with the maintainer.
+## Retrieval and model experiments
+
+Keep the corpus, queries, relevance labels, chunking, and baseline matched. Record the commit, package versions, model ID/revision, hardware, settings, and corpus scope.
+
+Report retrieval quality separately from latency, memory, and answer faithfulness. A fixture test is not a real-data benchmark. Preserve unsuccessful runs. Graph-extraction reports should include malformed-output and rule-fallback behavior, not only successful triples.
+
+## Data and credentials
+
+Do not commit weights, indexes, private documents, credentials, or author-specific machine paths. Prefer synthetic or explicitly licensed redistributable fixtures. Keep model/database dependencies out of lightweight helpers when practical.
+
+See [SECURITY.md](SECURITY.md) for local-use boundaries. There is no standalone LICENSE file; identify third-party sources and terms in proposed additions and discuss reuse questions with the maintainer.

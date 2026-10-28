@@ -1,0 +1,2 @@
+# Optional CUDA quantization dependency. Install after requirements.txt.
+bitsandbytes>=0.45,<1

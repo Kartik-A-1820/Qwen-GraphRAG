@@ -128,7 +128,7 @@ def test_graph_index_extracts_entities_and_retrieves(tmp_path):
     graph = KnowledgeGraphIndex(tmp_path / "graph.json")
     docs = {
         "doc-a": Document(
-            page_content="Gemma GraphRAG uses BM25, Chroma, and knowledge graph retrieval.",
+            page_content="Qwen GraphRAG uses BM25, Chroma, and knowledge graph retrieval.",
             metadata={"source": "a.txt", "chunk_index": 0},
         ),
         "doc-b": Document(
@@ -153,16 +153,16 @@ class FakeGraphExtractor:
     def extract(self, text: str) -> GraphDocument:
         return GraphDocument(
             entities=[
-                GraphEntity(id="gemma", name="gemma", type="MODEL", confidence=0.9),
+                GraphEntity(id="qwen", name="qwen", type="MODEL", confidence=0.9),
                 GraphEntity(id="graphrag", name="graphrag", type="TECH", confidence=0.9),
             ],
             relations=[
                 GraphRelation(
-                    source_id="gemma",
+                    source_id="qwen",
                     target_id="graphrag",
                     relation="POWERS",
                     confidence=0.85,
-                    evidence="Gemma powers GraphRAG extraction.",
+                    evidence="Qwen powers GraphRAG extraction.",
                 )
             ],
         )
@@ -174,7 +174,7 @@ def test_graph_index_supports_typed_entities_and_relations(tmp_path):
 
     graph.build({
         "doc-a": Document(
-            page_content="Gemma powers GraphRAG extraction.",
+            page_content="Qwen powers GraphRAG extraction.",
             metadata={"source": "a.txt", "chunk_index": 0},
         )
     })
@@ -183,7 +183,7 @@ def test_graph_index_supports_typed_entities_and_relations(tmp_path):
     assert snapshot["nodes"][0]["type"] in {"MODEL", "TECH"}
     assert snapshot["edges"][0]["relation"] == "POWERS"
     assert graph.stats()["relation_types"] == 1
-    assert graph.search("Gemma GraphRAG", k=1)[0].doc_id == "doc-a"
+    assert graph.search("Qwen GraphRAG", k=1)[0].doc_id == "doc-a"
 
 
 def test_kuzu_graph_backend_persists_typed_graph(tmp_path):
@@ -199,7 +199,7 @@ def test_kuzu_graph_backend_persists_typed_graph(tmp_path):
 
     graph.build({
         "doc-a": Document(
-            page_content="Gemma powers GraphRAG extraction.",
+            page_content="Qwen powers GraphRAG extraction.",
             metadata={"source": "a.txt", "chunk_index": 0},
         )
     })
