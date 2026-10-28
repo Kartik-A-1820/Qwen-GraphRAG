@@ -26,6 +26,7 @@ class BM25Index:
         self.term_freqs: dict[str, Counter[str]] = {}
         self.doc_freqs: defaultdict[str, int] = defaultdict(int)
         self.avg_doc_length = 0.0
+        self.total_doc_length = 0
 
     def build(self, documents: dict[str, str]) -> None:
         self.doc_ids = []
@@ -33,17 +34,26 @@ class BM25Index:
         self.term_freqs = {}
         self.doc_freqs = defaultdict(int)
 
+        self.total_doc_length = 0
+        self.add(documents)
+
+    def add(self, documents: dict[str, str]) -> None:
         for doc_id, text in documents.items():
+            if doc_id in self.term_freqs:
+                self.total_doc_length -= self.doc_lengths[doc_id]
+                for term in self.term_freqs[doc_id]:
+                    self.doc_freqs[term] -= 1
+            else:
+                self.doc_ids.append(doc_id)
             terms = tokenize(text)
             counts = Counter(terms)
-            self.doc_ids.append(doc_id)
             self.term_freqs[doc_id] = counts
             self.doc_lengths[doc_id] = len(terms)
+            self.total_doc_length += len(terms)
             for term in counts:
                 self.doc_freqs[term] += 1
 
-        total_length = sum(self.doc_lengths.values())
-        self.avg_doc_length = total_length / len(self.doc_ids) if self.doc_ids else 0.0
+        self.avg_doc_length = self.total_doc_length / len(self.doc_ids) if self.doc_ids else 0.0
 
     def search(self, query: str, k: int = 5) -> list[BM25Hit]:
         if not self.doc_ids:
@@ -68,5 +78,5 @@ class BM25Index:
                 )
                 scores[doc_id] += idf * (term_freq * (self.k1 + 1)) / norm
 
-        ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+        ranked = sorted(scores.items(), key=lambda item: (-item[1], item[0]))
         return [BM25Hit(doc_id=doc_id, score=score) for doc_id, score in ranked[:k]]

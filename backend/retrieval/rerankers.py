@@ -15,10 +15,10 @@ class NoOpReranker(BaseReranker):
 
 
 class CrossEncoderReranker(BaseReranker):
-    def __init__(self, model_name: str) -> None:
+    def __init__(self, model_name: str, revision: str | None = None) -> None:
         from sentence_transformers import CrossEncoder
 
-        self.model = CrossEncoder(model_name, max_length=512)
+        self.model = CrossEncoder(model_name, max_length=512, revision=revision, device="cpu")
 
     def rerank(self, query: str, documents: list[Document], limit: int) -> list[Document]:
         if not documents:
