@@ -3,6 +3,8 @@ import math
 import re
 import shutil
 import gc
+import os
+import tempfile
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -81,7 +83,7 @@ def extract_entities(text: str, max_entities: int = 24) -> list[str]:
     seen = set()
     lowered = text.lower()
 
-    for term in TECH_TERMS:
+    for term in sorted(TECH_TERMS):
         if term in lowered and term not in seen:
             seen.add(term)
             entities.append(term)
@@ -157,6 +159,9 @@ class LocalLLMGraphExtractor:
             extractor_settings = replace(
                 self.settings,
                 model_id=self.settings.graph_extractor_model,
+                model_revision=self.settings.graph_extractor_revision or (
+                    self.settings.model_revision if self.settings.graph_extractor_model == self.settings.model_id else None
+                ),
                 max_new_tokens=self.settings.graph_extraction_max_new_tokens,
             )
             self.generator = LocalCausalLMGenerator(extractor_settings)
@@ -383,9 +388,17 @@ class KnowledgeGraphIndex:
             },
             "doc_metadata": self.doc_metadata,
         }
-        self.path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=self.path.parent, delete=False) as handle:
+            temporary = Path(handle.name)
+            json.dump(payload, handle, indent=2)
+            handle.flush()
+            os.fsync(handle.fileno())
+        try:
+            os.replace(temporary, self.path)
+        finally:
+            temporary.unlink(missing_ok=True)
 
-    def build(self, documents: dict[str, Document]) -> None:
+    def build(self, documents: dict[str, Document], extracted: dict[str, GraphDocument] | None = None) -> None:
         self.entity_to_docs = defaultdict(set)
         self.doc_to_entities = defaultdict(set)
         self.entity_names = {}
@@ -394,35 +407,30 @@ class KnowledgeGraphIndex:
         self.doc_metadata = {}
         if self.store:
             self.store.reset()
+        self.add_documents(documents, extracted=extracted)
 
+    def add_documents(self, documents: dict[str, Document], extracted: dict[str, GraphDocument] | None = None) -> None:
+        if set(documents) & set(self.doc_metadata):
+            raise ValueError("Chunk IDs are immutable; rebuild when replacing existing chunks.")
         for doc_id, document in documents.items():
-            graph_doc = self.extractor.extract(document.page_content)
-            entities = graph_doc.entities
-            document.metadata["graph_entities"] = [entity.name for entity in entities]
+            graph_doc = extracted[doc_id] if extracted is not None else self.extractor.extract(document.page_content)
+            document.metadata["graph_entities"] = [entity.name for entity in graph_doc.entities]
             self.doc_metadata[doc_id] = {
                 "source": document.metadata.get("source"),
                 "page": document.metadata.get("page"),
                 "chunk_index": document.metadata.get("chunk_index"),
             }
-            for entity in entities:
+            self.doc_to_entities[doc_id] = set()
+            for entity in graph_doc.entities:
                 self.entity_to_docs[entity.id].add(doc_id)
                 self.doc_to_entities[doc_id].add(entity.id)
                 self.entity_names[entity.id] = entity.name
                 self.entity_types[entity.id] = entity.type
             for relation in graph_doc.relations:
-                edge = (relation.source_id, relation.target_id, relation.relation)
-                self.edges[edge] += 1
+                self.edges[(relation.source_id, relation.target_id, relation.relation)] += 1
             if self.store:
                 self.store.add_chunk(doc_id, document, graph_doc)
         self.save()
-
-    def add_documents(self, documents: dict[str, Document]) -> None:
-        merged = {
-            doc_id: Document(page_content="", metadata={})
-            for doc_id in self.doc_to_entities
-        }
-        merged.update(documents)
-        self.build(merged)
 
     def search(self, query: str, k: int = 5) -> list[GraphHit]:
         query_entities = [entity_id(name) for name in extract_entities(query, max_entities=12)]
@@ -447,7 +455,7 @@ class KnowledgeGraphIndex:
                     scores[doc_id] += 0.35 * math.log1p(weight)
                     matched[doc_id].add(self.entity_names.get(neighbor, neighbor))
 
-        ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)[:k]
+        ranked = sorted(scores.items(), key=lambda item: (-item[1], item[0]))[:k]
         return [
             GraphHit(doc_id=doc_id, score=score, matched_entities=sorted(matched[doc_id]))
             for doc_id, score in ranked

@@ -168,11 +168,14 @@ with tab_ask:
                     ])
                     st.markdown("### Answer")
                     st.markdown(result.get("answer", ""))
+                    if result.get("citation_status") in {"missing", "invalid"}:
+                        st.warning("The model did not produce valid source labels. Review the excerpts or try a narrower question.")
 
                     st.markdown("### Sources")
+                    st.caption("These are the excerpts provided to the model. Check the answer against their text.")
                     for index, ref in enumerate(result.get("references", []), start=1):
                         with st.expander(
-                            f"{index}. {ref.get('source', 'Document')} | page {ref.get('page', 'N/A')} | chunk {ref.get('chunk', 'N/A')}"
+                            f"[{ref.get('id', 'S' + str(index))}] {ref.get('source', 'Document')} | page {ref.get('page', 'N/A')} | chunk {ref.get('chunk', 'N/A')}"
                         ):
                             st.write(ref.get("content", ""))
 

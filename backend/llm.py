@@ -27,6 +27,8 @@ class LocalCausalLMGenerator:
             "low_cpu_mem_usage": True,
             "offload_folder": str(self.settings.offload_dir),
         }
+        if self.settings.model_revision:
+            kwargs["revision"] = self.settings.model_revision
 
         if self.settings.device == "auto":
             kwargs["device_map"] = "auto"
@@ -45,7 +47,7 @@ class LocalCausalLMGenerator:
         elif self.settings.device == "cpu":
             kwargs["torch_dtype"] = torch.float32
 
-        self.tokenizer = AutoTokenizer.from_pretrained(self.settings.model_id)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.settings.model_id, revision=self.settings.model_revision)
         self.model = AutoModelForCausalLM.from_pretrained(self.settings.model_id, **kwargs).eval()
 
     def generate(self, system_instruction: str, user_query: str, max_new_tokens: int | None = None) -> str:
@@ -68,12 +70,16 @@ class LocalCausalLMGenerator:
             prompt = f"System: {system_instruction}\n\nUser: {user_query}\n\nAssistant:"
             inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
 
+        input_length = inputs["input_ids"].shape[-1]
+        output_budget = max_new_tokens or self.settings.max_new_tokens
+        window = getattr(getattr(self.model, "config", None), "max_position_embeddings", None)
+        if window and input_length + output_budget > window:
+            raise ValueError("Prompt and output budget exceed the model context window. Reduce the document context or query.")
         with torch.inference_mode():
             outputs = self.model.generate(
                 **inputs,
-                max_new_tokens=max_new_tokens or self.settings.max_new_tokens,
+                max_new_tokens=output_budget,
                 do_sample=False,
             )
-        input_length = inputs["input_ids"].shape[-1]
         generated_tokens = outputs[:, input_length:]
         return self.tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)[0].strip()

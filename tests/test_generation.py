@@ -79,3 +79,13 @@ def test_cpu_four_bit_fails_before_loading_model(monkeypatch):
         generator._load()
     assert generator.model is None
     assert generator.tokenizer is None
+
+
+def test_context_overflow_fails_before_generation(monkeypatch):
+    monkeypatch.setitem(sys.modules, "torch", SimpleNamespace(inference_mode=nullcontext))
+    generator = LocalCausalLMGenerator(Settings())
+    generator.tokenizer = FakeTokenizer()
+    generator.model = FakeModel()
+    generator.model.config = SimpleNamespace(max_position_embeddings=22)
+    with pytest.raises(ValueError, match="context window"):
+        generator.generate("Use the references.", "What is RRF?", max_new_tokens=20)

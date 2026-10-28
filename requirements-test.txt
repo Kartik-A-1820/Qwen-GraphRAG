@@ -2,3 +2,11 @@
 pytest>=8,<10
 langchain-core>=0.3.70,<0.4
 python-dotenv>=1,<2
+fastapi>=0.115,<1
+httpx>=0.28,<1
+python-multipart>=0.0.18,<1
+langchain-text-splitters>=0.3,<0.4
+pypdf>=5,<7
+docx2txt>=0.8,<1
+filelock>=3.16,<4
+psutil>=5.9,<8

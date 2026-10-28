@@ -3,6 +3,8 @@ fastapi>=0.115,<1
 uvicorn>=0.30,<1
 python-multipart>=0.0.18,<1
 python-dotenv>=1,<2
+filelock>=3.16,<4
+psutil>=5.9,<8
 
 # Qwen text generation. Install a platform-appropriate torch build first.
 transformers>=4.46,<5
@@ -11,7 +13,6 @@ accelerate>=1,<2
 
 # Retrieval integrations use the LangChain 0.3 API family.
 langchain-core>=0.3.70,<0.4
-langchain-community>=0.3.25,<0.4
 langchain-text-splitters>=0.3,<0.4
 langchain-huggingface>=0.3,<0.4
 langchain-chroma>=0.2.4,<0.3

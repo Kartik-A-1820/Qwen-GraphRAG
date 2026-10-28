@@ -26,3 +26,34 @@ jobs:
           python-version: '3.11'
       - run: python -m pip install -r requirements-test.txt 'kuzu>=0.11,<0.12'
       - run: python -m pytest -q tests/test_retrieval.py
+
+  locked-cpu-integration:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+      HF_HUB_DISABLE_XET: '1'
+      HF_HUB_DISABLE_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface/hub
+          key: qwen-cpu-models-${{ runner.os }}-${{ hashFiles('evaluation/models.json') }}
+      - run: python -m pip install uv==0.13.4
+      - run: uv venv .venv
+      - run: uv pip sync --python .venv/bin/python --torch-backend cpu --require-hashes requirements-cpu-py312.lock
+      - run: .venv/bin/python -m pytest -q
+      - run: .venv/bin/python -m backend.evaluation.model_smoke --output .local/ci-results/model_smoke.json
+      - run: .venv/bin/python -m backend.evaluation.benchmark --output .local/ci-results/summary.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cpu-evaluation-results
+          path: .local/ci-results/
+          if-no-files-found: warn

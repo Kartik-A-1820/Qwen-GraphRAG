@@ -1,0 +1,40 @@
+{"id":"F1","category":"factual","query":"What is the return window for unused standard products?","relevant_ids":["D01"],"expected":"30 calendar days after delivery"}
+{"id":"F2","category":"factual","query":"What damage does the warranty exclude?","relevant_ids":["D02"],"expected":"accidental damage and normal wear"}
+{"id":"F3","category":"factual","query":"How long does standard domestic delivery take after dispatch?","relevant_ids":["D03"],"expected":"three to five business days"}
+{"id":"F4","category":"factual","query":"What is the daily dispatch cutoff?","relevant_ids":["D04"],"expected":"14:00 UTC"}
+{"id":"F5","category":"factual","query":"How much project storage does Aurora Basic include?","relevant_ids":["D05"],"expected":"10 GB"}
+{"id":"F6","category":"factual","query":"How long are Aurora Pro operational logs retained?","relevant_ids":["D06"],"expected":"90 days"}
+{"id":"F7","category":"factual","query":"When do access tokens expire?","relevant_ids":["D07"],"expected":"60 minutes"}
+{"id":"F8","category":"factual","query":"When do export download links expire?","relevant_ids":["D08"],"expected":"seven days after creation"}
+{"id":"F9","category":"factual","query":"What currency and payment deadline apply to Vega?","relevant_ids":["D09"],"expected":"EUR; net-30"}
+{"id":"F10","category":"factual","query":"What currency and payment deadline apply to Atlas?","relevant_ids":["D10"],"expected":"USD; net-15"}
+{"id":"F11","category":"factual","query":"What is the Severity 1 acknowledgment target?","relevant_ids":["D11"],"expected":"15 minutes"}
+{"id":"F12","category":"factual","query":"How often must Severity 2 status updates be sent?","relevant_ids":["D12"],"expected":"every 24 hours"}
+{"id":"P1","category":"paraphrase","query":"Must the graph extractor process unchanged text again on every upload?","relevant_ids":["D13"],"expected":"unchanged text can use its extraction cache"}
+{"id":"P2","category":"paraphrase","query":"How long can an owner reverse a requested archive removal?","relevant_ids":["D14"],"expected":"30-day cooling-off period"}
+{"id":"P3","category":"paraphrase","query":"Who is responsible for operating the Orion platform?","relevant_ids":["D15"],"expected":"Team Lumen"}
+{"id":"P4","category":"paraphrase","query":"Where does Lumen submit requests to approve risky platform changes?","relevant_ids":["D16"],"expected":"OpsDesk"}
+{"id":"P5","category":"paraphrase","query":"Which persistence system stores Aster execution records?","relevant_ids":["D17"],"expected":"Polaris"}
+{"id":"P6","category":"paraphrase","query":"At what time is the Polaris recovery copy created each day?","relevant_ids":["D18"],"expected":"02:00 UTC"}
+{"id":"P7","category":"paraphrase","query":"Who looks after the Nimbus data collection?","relevant_ids":["D19"],"expected":"Team Helix"}
+{"id":"P8","category":"paraphrase","query":"Can Helix membership alone authorize a private dataset export?","relevant_ids":["D20"],"expected":"no; data-governance approval is required"}
+{"id":"P9","category":"paraphrase","query":"What is the deadline to report a package damaged by the carrier?","relevant_ids":["D21"],"expected":"within 48 hours of delivery"}
+{"id":"P10","category":"paraphrase","query":"What must accompany a request to send back a damaged product?","relevant_ids":["D22"],"expected":"order ID and photograph of the defect"}
+{"id":"P11","category":"paraphrase","query":"In which city are EU workspace files kept?","relevant_ids":["D23"],"expected":"Frankfurt"}
+{"id":"P12","category":"paraphrase","query":"For how many days are diagnostic records kept?","relevant_ids":["D24"],"expected":"30 days"}
+{"id":"M1","category":"multi_hop","query":"Which team approves high-risk operational changes to Orion, and where is the request filed?","relevant_ids":["D15","D16"],"expected":"Team Lumen on-call owner; OpsDesk"}
+{"id":"M2","category":"multi_hop","query":"How long are backups retained for the database used by Aster?","relevant_ids":["D17","D18"],"expected":"Aster uses Polaris; backups retained 30 days"}
+{"id":"M3","category":"multi_hop","query":"Whose approval is required to export the private Nimbus dataset?","relevant_ids":["D19","D20"],"expected":"Nimbus is stewarded by Helix; data-governance group approval"}
+{"id":"M4","category":"multi_hop","query":"For an order confirmed after 14:00 UTC, when is dispatch and when does the domestic delivery estimate start?","relevant_ids":["D03","D04"],"expected":"next business day dispatch; three to five business days after dispatch"}
+{"id":"M5","category":"multi_hop","query":"Does expiry of an export link mean an archive has completed its deletion cooling-off period?","relevant_ids":["D08","D14"],"expected":"no; seven-day link expiry and 30-day archive cooling-off are separate"}
+{"id":"M6","category":"multi_hop","query":"How do currency and payment terms differ between Vega and Atlas?","relevant_ids":["D09","D10"],"expected":"Vega EUR net-30; Atlas USD net-15"}
+{"id":"M7","category":"multi_hop","query":"What changes in storage and operational-log retention when upgrading Aurora Basic to Pro?","relevant_ids":["D05","D06"],"expected":"10 GB to 100 GB; 30 days to 90 days"}
+{"id":"M8","category":"multi_hop","query":"How does the unused-product return window differ from manufacturing-defect warranty coverage?","relevant_ids":["D01","D02"],"expected":"30-day return window versus two-year manufacturing-defect warranty"}
+{"id":"A1","category":"ambiguous","query":"How long are logs retained?","relevant_ids":["D05","D06","D24"],"expected":"clarify operational logs versus diagnostics and subscription plan"}
+{"id":"A2","category":"ambiguous","query":"When must an incident be acknowledged?","relevant_ids":["D11","D12"],"expected":"clarify severity; 15 minutes for Severity 1, four hours for Severity 2"}
+{"id":"A3","category":"ambiguous","query":"What are my invoice payment terms?","relevant_ids":["D09","D10"],"expected":"clarify Vega or Atlas contract"}
+{"id":"A4","category":"ambiguous","query":"When does the data disappear?","relevant_ids":["D08","D14","D24"],"expected":"clarify export link, archive, or diagnostic record"}
+{"id":"U1","category":"unanswerable","query":"Who is the chief executive of Aurora Store?","relevant_ids":[],"expected":"not found in the provided documents"}
+{"id":"U2","category":"unanswerable","query":"What is the monthly price of Aurora Pro?","relevant_ids":[],"expected":"not found; price is explicitly undocumented"}
+{"id":"U3","category":"unanswerable","query":"What is the guaranteed resolution time for a Severity 1 incident?","relevant_ids":[],"expected":"not found; response targets are not resolution guarantees"}
+{"id":"U4","category":"unanswerable","query":"How many business days does international delivery take?","relevant_ids":[],"expected":"not found; no fixed international timeline is published"}
