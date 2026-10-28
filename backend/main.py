@@ -19,8 +19,8 @@ os.environ["PYTORCH_SDP_ATTENTION"] = "0"
 settings.ensure_dirs()
 
 app = FastAPI(
-    title="Local Hybrid GraphRAG API",
-    description="Zero-paid-API RAG backend with dense retrieval, BM25, Kuzu GraphRAG, RRF, and local generation.",
+    title="Qwen-GraphRAG API",
+    description="Local document Q&A with Qwen, dense/BM25/graph retrieval, rank fusion, and optional reranking.",
 )
 
 app.add_middleware(

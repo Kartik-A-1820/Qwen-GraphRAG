@@ -1,5 +1,6 @@
 import html
 import math
+import os
 import time
 
 import pandas as pd
@@ -8,9 +9,9 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 
-st.set_page_config(page_title="Local Hybrid GraphRAG", layout="wide")
+st.set_page_config(page_title="Qwen-GraphRAG", layout="wide")
 
-API_URL = st.sidebar.text_input("Backend URL", value="http://localhost:8000")
+API_URL = st.sidebar.text_input("Backend URL", value=os.getenv("RAG_API_URL", "http://localhost:8000"))
 st.sidebar.caption("Local-only FastAPI backend")
 
 
@@ -97,14 +98,15 @@ def render_graph(graph: dict) -> None:
     components.html(svg, height=height + 24, scrolling=False)
 
 
-st.title("Local Hybrid GraphRAG")
-st.caption("Dense Chroma retrieval + BM25 + Kuzu knowledge graph + RRF + local LLM")
+st.title("Qwen-GraphRAG")
+st.caption("Document Q&A with dense, BM25, and graph retrieval, rank fusion, and local Qwen generation")
 
 health, health_error = api_get("/health")
 if health_error:
     st.warning(f"Backend is not reachable: {health_error}")
 else:
     graph_stats = health.get("graph", {})
+    st.sidebar.caption(f"Generation model: {health.get('model_id', 'unknown')}")
     metric_row([
         ("Runtime", health.get("runtime", "unknown")),
         ("4-bit", str(health.get("load_in_4bit", False))),

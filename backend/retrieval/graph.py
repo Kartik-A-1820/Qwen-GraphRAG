@@ -221,11 +221,14 @@ def _guess_entity_type(name: str) -> str:
 
 
 class KuzuGraphStore:
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, buffer_pool_mb: int = 128) -> None:
         import kuzu
 
+        if buffer_pool_mb <= 0:
+            raise ValueError("Kuzu buffer pool must be positive.")
         self.path = path
-        self.db = kuzu.Database(str(path))
+        self.buffer_pool_size = buffer_pool_mb * 1024 * 1024
+        self.db = kuzu.Database(str(path), buffer_pool_size=self.buffer_pool_size)
         self.conn = kuzu.Connection(self.db)
         self._create_schema()
 
@@ -240,7 +243,7 @@ class KuzuGraphStore:
 
         gc.collect()
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.db = kuzu.Database(str(self.path))
+        self.db = kuzu.Database(str(self.path), buffer_pool_size=self.buffer_pool_size)
         self.conn = kuzu.Connection(self.db)
         self._create_schema()
 
@@ -335,7 +338,7 @@ class KnowledgeGraphIndex:
         if not self.settings or self.backend != "kuzu":
             return None
         try:
-            return KuzuGraphStore(self.settings.graph_db_path)
+            return KuzuGraphStore(self.settings.graph_db_path, self.settings.graph_buffer_pool_mb)
         except Exception:
             return None
 

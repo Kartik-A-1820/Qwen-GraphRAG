@@ -1,83 +1,98 @@
+"""Launch the API and dashboard using the active, already prepared environment."""
+
+import argparse
+import json
 import os
+from pathlib import Path
+import socket
 import subprocess
 import sys
-import venv
 import time
-import socket
-from pathlib import Path
+from urllib.error import URLError
+from urllib.request import urlopen
 
-# --- Config ---
-project_root = Path(__file__).parent.resolve()
-venv_dir = project_root / "venv"
-requirements = project_root / "requirements.txt"
-frontend_file = project_root / "frontend" / "app.py"
-backend_module = os.getenv("RAG_BACKEND_MODULE", "backend.main_4bit:app")
 
-# --- 1. Ensure Python 3.11 ---
-if not sys.version.startswith("3.11"):
-    print("❌ Python 3.11 is required. You're using:", sys.version)
-    sys.exit(1)
+PROJECT_ROOT = Path(__file__).resolve().parent
 
-# --- 2. Set venv paths ---
-if os.name == "nt":
-    pip_path = venv_dir / "Scripts" / "pip"
-    python_path = venv_dir / "Scripts" / "python"
-else:
-    pip_path = venv_dir / "bin" / "pip"
-    python_path = venv_dir / "bin" / "python"
 
-# --- 3. Create venv + install requirements ---
-if not venv_dir.exists():
-    print("📦 Creating virtual environment...")
-    venv.create(venv_dir, with_pip=True)
+def port_available(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        try:
+            probe.bind(("127.0.0.1", port))
+        except OSError:
+            return False
+    return True
 
-    print("📚 Installing dependencies from requirements.txt...")
-    subprocess.run([str(pip_path), "install", "--upgrade", "pip"])
-    subprocess.run([str(pip_path), "install", "-r", str(requirements)], check=True)
 
-    torch_index_url = os.getenv("RAG_TORCH_INDEX_URL", "https://download.pytorch.org/whl/cu130")
-    torch_package = os.getenv("RAG_TORCH_PACKAGE", "torch==2.14.0+cu130")
-    print(f"⚡ Installing GPU-enabled PyTorch from {torch_index_url}...")
-    subprocess.run([
-        str(pip_path), "install",
-        "--force-reinstall",
-        torch_package,
-        "--index-url", torch_index_url
-    ], check=True)
-else:
-    print("✅ venv already exists. Skipping installation.")
+def wait_for_backend(process, port: int, timeout: float) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if process.poll() is not None:
+            raise RuntimeError(f"Backend exited with status {process.returncode} before becoming ready.")
+        try:
+            with urlopen(f"http://127.0.0.1:{port}/health", timeout=1) as response:
+                if json.load(response).get("status") == "ok":
+                    return
+        except (OSError, URLError, ValueError):
+            pass
+        time.sleep(0.25)
+    raise TimeoutError("Backend startup timed out. Inspect its logs or increase --startup-timeout.")
 
-# --- 4. Launch backend server ---
-print(f"🚀 Launching FastAPI backend on 0.0.0.0:8000 using {backend_module}...")
-backend_proc = subprocess.Popen([
-    str(python_path), "-m", "uvicorn", backend_module,
-    "--host", "0.0.0.0", "--port", "8000", "--reload"
-])
 
-# --- 5. Wait for backend readiness ---
-print("⏳ Waiting for backend to become ready...")
+def stop_process(process) -> None:
+    if process.poll() is not None:
+        return
+    process.terminate()
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait()
 
-def is_port_open(host, port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.settimeout(1)
-        return s.connect_ex((host, port)) == 0
 
-for i in range(40):
-    if is_port_open("localhost", 8000):
-        print("✅ Backend is live at http://localhost:8000")
-        break
-    time.sleep(5)
-else:
-    print("❌ Backend didn't start in time.")
-    backend_proc.terminate()
-    sys.exit(1)
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description="Launch Qwen-GraphRAG from the active Python environment.")
+    parser.add_argument("--api-port", type=int, default=8000)
+    parser.add_argument("--ui-port", type=int, default=8501)
+    parser.add_argument("--startup-timeout", type=float, default=300)
+    args = parser.parse_args(argv)
+    if not 0 < args.api_port < 65536 or not 0 < args.ui_port < 65536:
+        parser.error("Ports must be between 1 and 65535.")
+    if args.api_port == args.ui_port or args.startup_timeout <= 0:
+        parser.error("Use distinct ports and a positive startup timeout.")
+    for port in (args.api_port, args.ui_port):
+        if not port_available(port):
+            parser.error(f"Port {port} is already in use.")
 
-# --- 6. Launch Streamlit frontend ---
-print("🎯 Launching Streamlit frontend...")
-frontend_proc = subprocess.Popen([
-    str(python_path), "-m", "streamlit", "run", str(frontend_file)
-])
+    processes = []
+    try:
+        backend = subprocess.Popen([
+            sys.executable, "-m", "uvicorn",
+            os.getenv("RAG_BACKEND_MODULE", "backend.main:app"),
+            "--host", "127.0.0.1", "--port", str(args.api_port),
+        ], cwd=PROJECT_ROOT)
+        processes.append(backend)
+        wait_for_backend(backend, args.api_port, args.startup_timeout)
+        frontend_env = os.environ.copy()
+        frontend_env["RAG_API_URL"] = f"http://127.0.0.1:{args.api_port}"
+        frontend = subprocess.Popen([
+            sys.executable, "-m", "streamlit", "run", str(PROJECT_ROOT / "frontend" / "app.py"),
+            "--server.address", "127.0.0.1", "--server.port", str(args.ui_port),
+        ], cwd=PROJECT_ROOT, env=frontend_env)
+        processes.append(frontend)
+        print(f"Qwen-GraphRAG: http://127.0.0.1:{args.ui_port} (Ctrl+C stops both services)")
+        while all(process.poll() is None for process in processes):
+            time.sleep(0.25)
+        return next((process.returncode for process in processes if process.returncode), 0)
+    except KeyboardInterrupt:
+        return 0
+    except (OSError, RuntimeError, TimeoutError) as exc:
+        print(f"Qwen-GraphRAG startup failed: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        for process in reversed(processes):
+            stop_process(process)
 
-# --- 7. Wait for both processes to exit
-backend_proc.wait()
-frontend_proc.wait()
+
+if __name__ == "__main__":
+    raise SystemExit(main())

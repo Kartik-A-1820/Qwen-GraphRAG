@@ -1,0 +1,28 @@
+name: Retrieval and runtime checks
+
+on: [push, pull_request]
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -r requirements-test.txt
+      - run: python -m pytest -q
+      - run: python -m backend.evaluation.run_retrieval_eval tests/fixtures/retrieval_results.jsonl --k 5
+
+  native-graph:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-test.txt 'kuzu>=0.11,<0.12'
+      - run: python -m pytest -q tests/test_retrieval.py

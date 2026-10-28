@@ -1,0 +1,4 @@
+# No model weights, torch, dashboard, or vector database required.
+pytest>=8,<10
+langchain-core>=0.3.70,<0.4
+python-dotenv>=1,<2
